@@ -7,13 +7,18 @@
 #include <ti/devices/msp432p4xx/inc/msp.h>
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 
-#define INIT_STATE 1    // nothing received so far
-#define AA_RECEIVED 2    // one aa received
-#define AA55_RECEIVED 3    // aa55 received
-#define AA55AA_RECEIVED 4    // aa55aa received
-#define AA55AA55_RECEIVED 5    // aa55aa55 received
+#define RIGHT_THRESHOLD 213
+#define LEFT_THRESHOLD 106
 
-volatile uint8_t currentState = 0;
+#define INIT_STATE 1
+#define STATE_55_RECEIVED 2
+#define STATE_55AA_RECEIVED 3
+#define STATE_55AA55_RECEIVED 4
+#define STATE_55AA55AA_RECEIVED 5
+
+volatile uint8_t currentState = INIT_STATE;
+
+//volatile uint8_t values[100];
 
 //volatile uint8_t txData = 0x01;
 volatile uint8_t rxData[12];
@@ -22,11 +27,12 @@ volatile uint8_t index = 0;
 //volatile uint8_t endWords[4];
 //volatile uint8_t wordIndex = 0;
 
-volatile uint16_t xpos;
-volatile uint16_t ypos;
-
-const uint16_t RIGHT_THRESHOLD = 213;
-const uint16_t LEFT_THRESHOLD = 106;
+volatile uint16_t checksum;
+volatile uint16_t signatureNumber;
+volatile uint16_t xCenter;
+volatile uint16_t yCenter;
+volatile uint16_t width;
+volatile uint16_t height;
 
 /* received object format
     0, 1     y              sync: 0xaa55=normal object, 0xaa56=color code object
@@ -67,20 +73,25 @@ void main(void)
     // Selecting P2.2 (UCA1RXD) and P2.3 (UCA1TXD) in UART mode
     MAP_GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P2, GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
 
-    /* Configuring UART Module */
+    // Configuring UART Module
     MAP_UART_initModule(EUSCI_A1_BASE, &uartConfig);
 
-    /* Enable UART module */
+    // Enable UART module
     MAP_UART_enableModule(EUSCI_A1_BASE);
 
-    /* Enabling interrupts */
+    // Enabling interrupts
     MAP_UART_enableInterrupt(EUSCI_A1_BASE, EUSCI_A_UART_RECEIVE_INTERRUPT);
     MAP_Interrupt_enableInterrupt(INT_EUSCIA1);
-    MAP_Interrupt_enableSleepOnIsrExit();
+    MAP_Interrupt_disableSleepOnIsrExit();
     MAP_Interrupt_enableMaster();
 
-    MAP_PCM_gotoLPM0();
-    __no_operation();
+    // go to sleep
+    while(1)
+    {
+        MAP_PCM_gotoLPM0();
+        __no_operation();
+    }
+
 }
 
 /* ISR for UART receive */
@@ -93,56 +104,59 @@ void EUSCIA1_IRQHandler(void)
     {
         uint8_t data = MAP_UART_receiveData(EUSCI_A1_BASE);
 
-        if (currentState==INIT_STATE && data==0xaa) // nothing received yet
+
+
+//        values[index] = data;
+////        index = index+1 == 100 ? 0 : index++;
+//        index++;
+//        if (index==100)
+//        {
+//            index = 0;
+//        }
+
+
+
+
+        if (currentState==INIT_STATE) // nothing received yet
         {
-            currentState = AA_RECEIVED;
+            if (data==0x55)
+                currentState = STATE_55_RECEIVED;
         }
-        else if (currentState==AA_RECEIVED && data==0xa55)    // 'aa' already received
+        else if (currentState==STATE_55_RECEIVED)
         {
-            currentState = AA55_RECEIVED;
+            if (data==0xaa)
+                currentState = STATE_55AA_RECEIVED;
+            else
+                currentState = INIT_STATE;
         }
-        else if (currentState==AA55_RECEIVED && data==0xaa)    // 'aa55' already received
+        else if (currentState==STATE_55AA_RECEIVED)
         {
-            currentState = AA55AA_RECEIVED;
+            if (data==0x55)
+                currentState = STATE_55AA55_RECEIVED;
+            else
+                currentState = INIT_STATE;
         }
-        else if (currentState==AA55AA_RECEIVED && data==0x55)
+        else if (currentState==STATE_55AA55_RECEIVED)
         {
-            currentState = AA55AA55_RECEIVED;
+            if (data==0xaa)
+                currentState = STATE_55AA55AA_RECEIVED;
+            else
+                currentState = INIT_STATE;
         }
-        else if (currentState==AA55AA55_RECEIVED)
+        else if (currentState==STATE_55AA55AA_RECEIVED)
         {
             rxData[++index] = data;
             if (index==12)
             {
+                checksum = rxData[0] + 256*rxData[1];
+                signatureNumber = rxData[2] + 256*rxData[3];
+                xCenter = rxData[4] + 256*rxData[5];
+                yCenter = rxData[6] + 256*rxData[7];
+                width = rxData[8] + 256*rxData[9];
+                height = rxData[10] + 256*rxData[11];
+
                 currentState = INIT_STATE;
             }
         }
-
-
-////        if (data)
-//        {
-//            if ((endWords[0]==0xaa && endWords[1]==0x55 && endWords[2]==0xaa && endWords[3]==0x55))
-//            {
-//                if (index==12)
-//                {
-////                    wordIndex = 0;
-//                    endWords[0] = data;
-//                    endWords[1] = 0;
-//                    endWords[2] = 0;
-//                    endWords[3] = 0;
-//                }
-//                else
-//                {
-//                    rxData[index++] = data;
-//                }
-//            }
-//            else
-//            {
-//                if (wordIndex==4) wordIndex = 0;
-//                endWords[wordIndex++] = data;
-//            }
-//
-//        }
-
     }
 }
