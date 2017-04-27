@@ -9,7 +9,7 @@
  *  1. change 55 to 56
  *  2. interrupt-ception??
  */
-
+#include <stdio.h>
 #include <ti/devices/msp432p4xx/inc/msp.h>
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 
@@ -20,17 +20,17 @@
 #define ANGLE_HIGH_THRESHOLD 110
 #define ANGLE_LOW_THRESHOLD 70
 
+#define SIGNATURE_123 5201
+
 #define INIT_STATE 1
 #define STATE_55_RECEIVED 2
 #define STATE_55AA_RECEIVED 3
 #define STATE_55AA56_RECEIVED 4
 #define STATE_55AA56AA_RECEIVED 5
 
-#define SIGNATURE_123 5201
-
 volatile uint8_t currentState = INIT_STATE;
 
-uint8_t data;
+volatile uint8_t data;
 volatile uint8_t rxDataArray[14];
 volatile uint8_t index = 0;
 
@@ -52,13 +52,12 @@ volatile uint16_t angle;
     12, 13   y              height of object    // 1-200
  */
 
-
 /********************************************************************
  *  STATE MACHINE FUNCTION
  ********************************************************************/
 uint8_t didReceiveSyncWords(void)
 {
-    if (currentState==INIT_STATE) // nothing received yet
+    if (currentState==INIT_STATE)
     {
        if (data==0x55)
            currentState = STATE_55_RECEIVED;
@@ -159,7 +158,7 @@ const eUSCI_UART_Config uartConfig =
      EUSCI_A_UART_OVERSAMPLING_BAUDRATE_GENERATION  // Over-sampling on
 };
 
-/* ISR for UART receive */
+// ISR for UART receive
 void EUSCIA1_IRQHandler(void)
 {
     // interrupt status
@@ -169,29 +168,32 @@ void EUSCIA1_IRQHandler(void)
     {
         data = MAP_UART_receiveData(EUSCI_A1_BASE);
 
-//        if (currentState==STATE_55AA56AA_RECEIVED)
-        if (didReceiveSyncWords())
-        {
-            rxDataArray[index++] = data;
-            if (index==14)
-            {
-                checksum = rxDataArray[0] + 256*rxDataArray[1];
-                signatureNumber = rxDataArray[2] + 256*rxDataArray[3];
-                xCenter = rxDataArray[4] + 256*rxDataArray[5];
-                yCenter = rxDataArray[6] + 256*rxDataArray[7];
-                width = rxDataArray[8] + 256*rxDataArray[9];
-                height = rxDataArray[10] + 256*rxDataArray[11];
-                angle = rxDataArray[12] + 256*rxDataArray[13];
+        rxDataArray[index++] = data;
+        if (index==14)
+            index = 0;
 
-                if (signatureNumber==SIGNATURE_123)
-                {
-                    moveCar();
-                }
-
-                currentState = INIT_STATE;
-                index = 0;
-            }
-        }
+//        if (didReceiveSyncWords())
+//        {
+//            rxDataArray[index++] = data;
+//            if (index==14)
+//            {
+//                checksum = rxDataArray[0] + 256*rxDataArray[1];
+//                signatureNumber = rxDataArray[2] + 256*rxDataArray[3];
+//                xCenter = rxDataArray[4] + 256*rxDataArray[5];
+//                yCenter = rxDataArray[6] + 256*rxDataArray[7];
+//                width = rxDataArray[8] + 256*rxDataArray[9];
+//                height = rxDataArray[10] + 256*rxDataArray[11];
+//                angle = rxDataArray[12] + 256*rxDataArray[13];
+//
+//                if (signatureNumber==SIGNATURE_123)
+//                {
+//                    moveCar();
+//                }
+//
+//                currentState = INIT_STATE;
+//                index = 0;
+//            }
+//        }
     }
 }
 

@@ -1,6 +1,9 @@
 # FIXED
 
 main.obj: ../main.c
+main.obj: /Applications/ti/ccsv7/tools/compiler/ti-cgt-arm_17.3.0.STS/include/stdio.h
+main.obj: /Applications/ti/ccsv7/tools/compiler/ti-cgt-arm_17.3.0.STS/include/linkage.h
+main.obj: /Applications/ti/ccsv7/tools/compiler/ti-cgt-arm_17.3.0.STS/include/stdarg.h
 main.obj: /Applications/ti/simplelink_msp432_sdk_1_20_00_45/source/ti/devices/msp432p4xx/inc/msp.h
 main.obj: /Applications/ti/simplelink_msp432_sdk_1_20_00_45/source/ti/devices/msp432p4xx/inc/msp432p401r.h
 main.obj: /Applications/ti/ccsv7/tools/compiler/ti-cgt-arm_17.3.0.STS/include/stdint.h
@@ -43,6 +46,9 @@ main.obj: /Applications/ti/simplelink_msp432_sdk_1_20_00_45/source/ti/devices/ms
 main.obj: /Applications/ti/simplelink_msp432_sdk_1_20_00_45/source/ti/devices/msp432p4xx/driverlib/wdt_a.h
 
 ../main.c: 
+/Applications/ti/ccsv7/tools/compiler/ti-cgt-arm_17.3.0.STS/include/stdio.h: 
+/Applications/ti/ccsv7/tools/compiler/ti-cgt-arm_17.3.0.STS/include/linkage.h: 
+/Applications/ti/ccsv7/tools/compiler/ti-cgt-arm_17.3.0.STS/include/stdarg.h: 
 /Applications/ti/simplelink_msp432_sdk_1_20_00_45/source/ti/devices/msp432p4xx/inc/msp.h: 
 /Applications/ti/simplelink_msp432_sdk_1_20_00_45/source/ti/devices/msp432p4xx/inc/msp432p401r.h: 
 /Applications/ti/ccsv7/tools/compiler/ti-cgt-arm_17.3.0.STS/include/stdint.h: 
