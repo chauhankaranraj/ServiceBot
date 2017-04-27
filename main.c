@@ -8,6 +8,7 @@
  *  TODO:
  *  1. change 55 to 56
  *  2. interrupt-ception??
+ *  3. change output port from timer
  */
 #include <stdio.h>
 #include <ti/devices/msp432p4xx/inc/msp.h>
@@ -27,6 +28,8 @@
 #define STATE_55AA_RECEIVED 3
 #define STATE_55AA56_RECEIVED 4
 #define STATE_55AA56AA_RECEIVED 5
+
+#define INITIAL_HALF_PERIOD 100
 
 volatile uint8_t currentState = INIT_STATE;
 
@@ -51,6 +54,51 @@ volatile uint16_t angle;
     10, 11   y              width of object     // 1-320
     12, 13   y              height of object    // 1-200
  */
+
+/********************************************************************
+ *  PWM ON TIMER A FOR ULTRASONIC SENSOR
+ ********************************************************************/
+
+// Port mapping configuration register
+const uint8_t portMapping[] =
+{
+    //Port P2:
+    PM_NONE, PM_NONE, PM_NONE, PM_NONE, PM_NONE, PM_NONE, PM_NONE,
+    PM_TA0CCR0A
+};
+
+// Timer_A UpMode Configuration Parameter
+const Timer_A_UpModeConfig upConfig =
+{
+        TIMER_A_CLOCKSOURCE_SMCLK,              // SMCLK Clock Source
+        TIMER_A_CLOCKSOURCE_DIVIDER_10,          // SMCLK/10 = 0.8MHz
+        INITIAL_HALF_PERIOD,                        // 100 tick period
+        TIMER_A_TAIE_INTERRUPT_DISABLE,         // Disable Timer interrupt
+        TIMER_A_CCIE_CCR0_INTERRUPT_DISABLE ,   // Disable CCR0 interrupt
+        TIMER_A_DO_CLEAR                        // Clear value
+};
+
+const Timer_A_CompareModeConfig compareConfig =
+{
+        TIMER_A_CAPTURECOMPARE_REGISTER_0,
+        TIMER_A_CAPTURECOMPARE_INTERRUPT_DISABLE,
+        TIMER_A_OUTPUTMODE_TOGGLE,
+        INITIAL_HALF_PERIOD
+};
+
+void initTimer(void) // initialization and start of timer
+{
+    /* Configuring Timer_A1 for Up Mode */
+    MAP_Timer_A_configureUpMode(TIMER_A0_BASE, &upConfig);
+    MAP_Timer_A_initCompare(TIMER_A0_BASE, &compareConfig);
+
+    MAP_GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2,GPIO_PIN7,GPIO_PRIMARY_MODULE_FUNCTION);
+    P2->SEL0|=BIT7;     // connect timer output to pin (select alternate function for pin)
+    P2->DIR |=BIT7;     // output mode on P2.7 (direction output completes setting the function)
+    MAP_Timer_A_startCounter(TIMER_A0_BASE, TIMER_A_UP_MODE);   // start TA0 in up mode
+}
+
+
 
 /********************************************************************
  *  STATE MACHINE FUNCTION
@@ -219,6 +267,10 @@ void main(void)
     MAP_GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN6);
     MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P4, GPIO_PIN1 | GPIO_PIN6);
     MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
+
+    // map ports
+    MAP_PMAP_configurePorts(portMapping, PMAP_P2MAP, 1, PMAP_DISABLE_RECONFIGURATION);
+    initTimer();
 
     // Configuring UART Module
     MAP_UART_initModule(EUSCI_A1_BASE, &uartConfig);
