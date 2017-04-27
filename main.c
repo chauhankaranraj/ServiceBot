@@ -14,6 +14,19 @@
 #include <ti/devices/msp432p4xx/inc/msp.h>
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 
+#define LEFT_MOTOR_PORT GPIO_PORT_P4
+#define LEFT_MOTOR_PIN GPIO_PIN1
+#define RIGHT_MOTOR_PORT GPIO_PORT_P1
+#define RIGHT_MOTOR_PIN GPIO_PIN6
+
+#define FALL_SIGNAL_PORT GPIO_PORT_P4
+#define FALL_SIGNAL_PIN GPIO_PIN6
+
+#define US_TRIGGER_PORT GPIO_PORT_P2
+#define US_TRIGGER_PIN GPIO_PIN7
+#define US_ECHO_PORT GPIO_PORT_P5
+#define US_ECHO_PIN GPIO_PIN1
+
 #define RIGHT_THRESHOLD 200
 #define LEFT_THRESHOLD 100
 #define WIDTH_THRESHOLD 170
@@ -55,10 +68,10 @@ volatile uint16_t angle;
     12, 13   y              height of object    // 1-200
  */
 
-/********************************************************************
- *  PWM ON TIMER A FOR ULTRASONIC SENSOR
- ********************************************************************/
 
+/********************************************************************
+ *  ULTRASONIC SENSOR TIMER_A PWM
+ ********************************************************************/
 // Port mapping configuration register
 const uint8_t portMapping[] =
 {
@@ -92,14 +105,14 @@ void initTimer(void) // initialization and start of timer
     MAP_Timer_A_configureUpMode(TIMER_A0_BASE, &upConfig);
     MAP_Timer_A_initCompare(TIMER_A0_BASE, &compareConfig);
 
-    MAP_GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2,GPIO_PIN7,GPIO_PRIMARY_MODULE_FUNCTION);
+    MAP_GPIO_setAsPeripheralModuleFunctionOutputPin(US_TRIGGER_PORT,
+                                                    US_TRIGGER_PIN,
+                                                    GPIO_PRIMARY_MODULE_FUNCTION);
     MAP_Timer_A_startCounter(TIMER_A0_BASE, TIMER_A_UP_MODE);   // start TA0 in up mode
 }
 
-
-
 /********************************************************************
- *  STATE MACHINE FUNCTION
+ *  STATE MACHINE
  ********************************************************************/
 uint8_t didReceiveSyncWords(void)
 {
@@ -137,52 +150,58 @@ uint8_t didReceiveSyncWords(void)
     return 0;
 }
 
-/********************************************************************
- *  CAR MOVEMENT FUNCTION
- ********************************************************************/
 
+/********************************************************************
+ *  CAR MOVEMENT
+ ********************************************************************/
 void moveCar(void)
 {
     // angle
     if (angle>ANGLE_LOW_THRESHOLD && angle<ANGLE_HIGH_THRESHOLD)
     {
-        MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P4, GPIO_PIN6);
+        MAP_GPIO_setOutputHighOnPin(FALL_SIGNAL_PORT, FALL_SIGNAL_PIN);
     }
     else
     {
-        MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P4, GPIO_PIN6);
+        MAP_GPIO_setOutputLowOnPin(FALL_SIGNAL_PORT, FALL_SIGNAL_PIN);
+    }
+
+    // check if it is ok to move forward. If not, move backward
+    if (!MAP_GPIO_getInputPinValue(US_ECHO_PORT, US_ECHO_PIN))
+    {
+        MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+        MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+        return;
     }
 
     // forward backward
     if (width < WIDTH_THRESHOLD)
     {
-        MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P4, GPIO_PIN1);
-        MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN6);
+        MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+        MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
     }
     else
     {
-        MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P4, GPIO_PIN1);
-        MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
+        MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+        MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
     }
 
     // right left
     if (xCenter > RIGHT_THRESHOLD)
     {
-        MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P4, GPIO_PIN1);
-        MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
+        MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+        MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
     }
     else if (xCenter < LEFT_THRESHOLD)
     {
-        MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P4, GPIO_PIN1);
-        MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN6);
+        MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+        MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
     }
     else
     {
-        MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
-        MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P4, GPIO_PIN1);
+        MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+        MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
     }
-
-
 }
 
 
@@ -214,8 +233,6 @@ void EUSCIA1_IRQHandler(void)
     {
         data = MAP_UART_receiveData(EUSCI_A1_BASE);
 
-        printf("%i", data);
-
         if (didReceiveSyncWords())
         {
             rxDataArray[index++] = data;
@@ -241,10 +258,10 @@ void EUSCIA1_IRQHandler(void)
     }
 }
 
-/********************************************************************
- *  MAIN FUNCTION
- ********************************************************************/
 
+/********************************************************************
+ *  MAIN
+ ********************************************************************/
 void main(void)
 {
     // Stop the watch dog timer
@@ -257,14 +274,21 @@ void main(void)
     MAP_CS_initClockSignal(CS_MCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
     MAP_CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
 
+    // motor pins 4.1 (LEFT), 1.6 (RIGHT)
+    MAP_GPIO_setAsOutputPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+    MAP_GPIO_setAsOutputPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+    MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+    MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+
+    // fall pin 4.6
+    MAP_GPIO_setAsOutputPin(FALL_SIGNAL_PORT, FALL_SIGNAL_PIN);
+    MAP_GPIO_setOutputLowOnPin(FALL_SIGNAL_PORT, FALL_SIGNAL_PIN);
+
+    // ultrasonic sensor echo pin 5.1
+    MAP_GPIO_setAsInputPin(US_ECHO_PORT, US_ECHO_PIN);
+
     // Selecting P2.2 (UCA1RXD) and P2.3 (UCA1TXD) in UART mode
     MAP_GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P2, GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
-
-    // motor pins 4.1, 1.6, fall 4.6
-    MAP_GPIO_setAsOutputPin(GPIO_PORT_P4, GPIO_PIN1 | GPIO_PIN6);
-    MAP_GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN6);
-    MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P4, GPIO_PIN1 | GPIO_PIN6);
-    MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
 
     // map ports
     MAP_PMAP_configurePorts(portMapping, PMAP_P2MAP, 1, PMAP_DISABLE_RECONFIGURATION);
