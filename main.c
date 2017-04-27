@@ -56,7 +56,7 @@ volatile uint16_t xCenter;
 volatile uint16_t yCenter;
 volatile uint16_t width;
 volatile uint16_t height;
-volatile uint16_t angle;
+volatile int16_t angle;
 
 /* received object format
     0, 1     y              sync: 0xaa55=normal object, 0xaa56=color code object
