@@ -166,13 +166,13 @@ void moveCar(void)
         MAP_GPIO_setOutputLowOnPin(FALL_SIGNAL_PORT, FALL_SIGNAL_PIN);
     }
 
-    // check if it is ok to move forward. If not, move backward
-    if (!MAP_GPIO_getInputPinValue(US_ECHO_PORT, US_ECHO_PIN))
-    {
-        MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
-        MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
-        return;
-    }
+//    // check if it is ok to move forward. If not, move backward
+//    if (!MAP_GPIO_getInputPinValue(US_ECHO_PORT, US_ECHO_PIN))
+//    {
+//        MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+//        MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+//        return;
+//    }
 
     // forward backward
     if (width < WIDTH_THRESHOLD)
