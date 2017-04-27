@@ -31,7 +31,7 @@
 volatile uint8_t currentState = INIT_STATE;
 
 volatile uint8_t data;
-volatile uint8_t rxDataArray[14];
+volatile uint8_t rxDataArray[100];
 volatile uint8_t index = 0;
 
 volatile uint16_t checksum;
@@ -41,6 +41,8 @@ volatile uint16_t yCenter;
 volatile uint16_t width;
 volatile uint16_t height;
 volatile uint16_t angle;
+
+volatile float x,y,z;
 
 /* received object format
     0, 1     y              sync: 0xaa55=normal object, 0xaa56=color code object
@@ -167,10 +169,38 @@ void EUSCIA1_IRQHandler(void)
     if (status & EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG)   // check if receive flag is raised
     {
         data = MAP_UART_receiveData(EUSCI_A1_BASE);
+//
+//        if (currentState==1 && data=='!')
+//        {
+//            currentState = 2;
+//        }
+//        else if (currentState==1)
+//        {
+//            currentState = 1;
+//        }
+//        if (currentState==2 && data=='A')
+//        {
+//            currentState = 3;
+//        }
+//        else if (currentState==2)
+//        {
+//            currentState = 1;
+//        }
+//        if (currentState==3)
+        {
+            rxDataArray[index++] = data;
+            if (index==100)
+            {
+                index = 0;
+                x = (rxDataArray[2] << 24) + (rxDataArray[3] << 16) + (rxDataArray[4] << 8) + (rxDataArray[5] << 0);
+//                currentState = 1;
+            }
+        }
 
-        rxDataArray[index++] = data;
-        if (index==14)
-            index = 0;
+
+
+
+
 
 //        if (didReceiveSyncWords())
 //        {
