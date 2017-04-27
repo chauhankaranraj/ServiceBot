@@ -29,7 +29,7 @@
 #define STATE_55AA56_RECEIVED 4
 #define STATE_55AA56AA_RECEIVED 5
 
-#define INITIAL_HALF_PERIOD 100
+#define INITIAL_HALF_PERIOD 2500
 
 volatile uint8_t currentState = INIT_STATE;
 
@@ -71,8 +71,8 @@ const uint8_t portMapping[] =
 const Timer_A_UpModeConfig upConfig =
 {
         TIMER_A_CLOCKSOURCE_SMCLK,              // SMCLK Clock Source
-        TIMER_A_CLOCKSOURCE_DIVIDER_10,          // SMCLK/10 = 0.8MHz
-        INITIAL_HALF_PERIOD,                        // 100 tick period
+        TIMER_A_CLOCKSOURCE_DIVIDER_8,          // SMCLK/8 = 1MHz
+        INITIAL_HALF_PERIOD,                    // 100 tick period
         TIMER_A_TAIE_INTERRUPT_DISABLE,         // Disable Timer interrupt
         TIMER_A_CCIE_CCR0_INTERRUPT_DISABLE ,   // Disable CCR0 interrupt
         TIMER_A_DO_CLEAR                        // Clear value
@@ -93,8 +93,6 @@ void initTimer(void) // initialization and start of timer
     MAP_Timer_A_initCompare(TIMER_A0_BASE, &compareConfig);
 
     MAP_GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2,GPIO_PIN7,GPIO_PRIMARY_MODULE_FUNCTION);
-    P2->SEL0|=BIT7;     // connect timer output to pin (select alternate function for pin)
-    P2->DIR |=BIT7;     // output mode on P2.7 (direction output completes setting the function)
     MAP_Timer_A_startCounter(TIMER_A0_BASE, TIMER_A_UP_MODE);   // start TA0 in up mode
 }
 
