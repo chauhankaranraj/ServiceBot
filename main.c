@@ -48,9 +48,9 @@ volatile uint16_t height;
 const eUSCI_UART_Config uartConfig =
 {
      EUSCI_A_UART_CLOCKSOURCE_SMCLK,                // clockSource
-     6,                                             // clockPrescalar
-     8,                                             // firstModReg
-     17,                                            // secondModReg
+     52,                                            // clockPrescalar
+     1,                                             // firstModReg
+     73,                                            // secondModReg
      EUSCI_A_UART_NO_PARITY,                        // No parity
      EUSCI_A_UART_LSB_FIRST,                        // LSB first transmission
      EUSCI_A_UART_ONE_STOP_BIT,                     // One stop bit
@@ -63,8 +63,8 @@ void main(void)
     // Stop the watch dog timer
     MAP_WDT_A_holdTimer();
 
-    // Set DCO frequency to 1MHz
-    MAP_CS_setDCOFrequency(CS_1MHZ);
+    // Set DCO frequency to 8MHz
+    MAP_CS_setDCOFrequency(CS_8MHZ);
 
     // Set DCO as source for MCLK and SMCLK
     MAP_CS_initClockSignal(CS_MCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
@@ -145,7 +145,7 @@ void EUSCIA1_IRQHandler(void)
         }
         else if (currentState==STATE_55AA55AA_RECEIVED)
         {
-            rxData[++index] = data;
+            rxData[index++] = data;
             if (index==12)
             {
                 checksum = rxData[0] + 256*rxData[1];
@@ -156,6 +156,7 @@ void EUSCIA1_IRQHandler(void)
                 height = rxData[10] + 256*rxData[11];
 
                 currentState = INIT_STATE;
+                index = 0;
             }
         }
     }
