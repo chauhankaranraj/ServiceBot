@@ -337,7 +337,7 @@ void main(void)
     MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P4, GPIO_PIN1 | GPIO_PIN6);
     MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
 
-    // Configuring UART Module
+    // Configuring UART Mod
     MAP_UART_initModule(EUSCI_A2_BASE, &uartConfig);
 
     // Enable UART module
