@@ -1,7 +1,7 @@
 ******************************************************************************
                   TI ARM Linker Unix v17.3.0                   
 ******************************************************************************
->> Linked Fri Apr 28 01:28:44 2017
+>> Linked Fri Apr 28 18:55:41 2017
 
 OUTPUT FILE NAME:   <pixyUart.out>
 ENTRY POINT SYMBOL: "_c_int00"  address: 00000ac1
@@ -165,9 +165,9 @@ address   name
 00000bfb  DebugMon_Handler               
 00000bfb  Default_Handler                
 00000bfb  EUSCIA0_IRQHandler             
-00000249  EUSCIA1_IRQHandler             
-00000249  EUSCIA1_IRQHandler             
-00000bfb  EUSCIA2_IRQHandler             
+00000bfb  EUSCIA1_IRQHandler             
+00000249  EUSCIA2_IRQHandler             
+00000249  EUSCIA2_IRQHandler             
 00000bfb  EUSCIA3_IRQHandler             
 00000bfb  EUSCIB0_IRQHandler             
 00000bfb  EUSCIB1_IRQHandler             
@@ -285,8 +285,8 @@ address   name
 000000e5  didReceiveSyncWords            
 0000016d  moveCar                        
 00000200  __STACK_SIZE                   
-00000249  EUSCIA1_IRQHandler             
-00000249  EUSCIA1_IRQHandler             
+00000249  EUSCIA2_IRQHandler             
+00000249  EUSCIA2_IRQHandler             
 00000455  main                           
 000005a5  SystemCoreClockUpdate          
 00000819  SystemInit                     
@@ -329,7 +329,7 @@ address   name
 00000bfb  DebugMon_Handler               
 00000bfb  Default_Handler                
 00000bfb  EUSCIA0_IRQHandler             
-00000bfb  EUSCIA2_IRQHandler             
+00000bfb  EUSCIA1_IRQHandler             
 00000bfb  EUSCIA3_IRQHandler             
 00000bfb  EUSCIB0_IRQHandler             
 00000bfb  EUSCIB1_IRQHandler             

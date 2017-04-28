@@ -175,14 +175,14 @@ const eUSCI_UART_Config uartConfig =
 };
 
 // ISR for UART receive
-void EUSCIA1_IRQHandler(void)
+void EUSCIA2_IRQHandler(void)
 {
     // interrupt status
-    uint_fast8_t status = MAP_UART_getEnabledInterruptStatus(EUSCI_A1_BASE);
+    uint_fast8_t status = MAP_UART_getEnabledInterruptStatus(EUSCI_A2_BASE);
 
     if (status & EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG)   // check if receive flag is raised
     {
-        data = MAP_UART_receiveData(EUSCI_A1_BASE);
+        data = MAP_UART_receiveData(EUSCI_A2_BASE);
 
         if (currentState==1)
         {
@@ -328,8 +328,8 @@ void main(void)
     MAP_CS_initClockSignal(CS_MCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
     MAP_CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
 
-    // Selecting P2.2 (UCA1RXD) and P2.3 (UCA1TXD) in UART mode
-    MAP_GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P2, GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
+    // Selecting P3.2 (UCA2RXD) and P3.3 (UCA2TXD) in UART mode
+    MAP_GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P3, GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
 
     // motor pins 4.1, 1.6, fall 4.6
     MAP_GPIO_setAsOutputPin(GPIO_PORT_P4, GPIO_PIN1 | GPIO_PIN6);
@@ -338,14 +338,14 @@ void main(void)
     MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
 
     // Configuring UART Module
-    MAP_UART_initModule(EUSCI_A1_BASE, &uartConfig);
+    MAP_UART_initModule(EUSCI_A2_BASE, &uartConfig);
 
     // Enable UART module
-    MAP_UART_enableModule(EUSCI_A1_BASE);
+    MAP_UART_enableModule(EUSCI_A2_BASE);
 
     // Enabling interrupts
-    MAP_UART_enableInterrupt(EUSCI_A1_BASE, EUSCI_A_UART_RECEIVE_INTERRUPT);
-    MAP_Interrupt_enableInterrupt(INT_EUSCIA1);
+    MAP_UART_enableInterrupt(EUSCI_A2_BASE, EUSCI_A_UART_RECEIVE_INTERRUPT);
+    MAP_Interrupt_enableInterrupt(INT_EUSCIA2);
     MAP_Interrupt_disableSleepOnIsrExit();
     MAP_Interrupt_enableMaster();
 
