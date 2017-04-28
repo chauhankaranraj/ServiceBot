@@ -31,7 +31,7 @@
 volatile uint8_t currentState = INIT_STATE;
 
 volatile uint8_t data;
-volatile uint8_t rxDataArray[100];
+volatile int rxDataArray[12];
 volatile uint8_t index = 0;
 
 volatile uint16_t checksum;
@@ -42,7 +42,21 @@ volatile uint16_t width;
 volatile uint16_t height;
 volatile uint16_t angle;
 
-volatile float x,y,z;
+//volatile int xInt, yInt, zInt;
+
+volatile float x = 0,y = 0,z = 0;
+// X -- 4 3 2 1
+// Y -- 8 7 6 5
+// Z -- 12 11 10 9
+
+typedef union {
+  int intForm;
+  float floatForm;
+} acc;
+
+acc xAcc, yAcc, zAcc;
+
+
 
 /* received object format
     0, 1     y              sync: 0xaa55=normal object, 0xaa56=color code object
@@ -169,31 +183,102 @@ void EUSCIA1_IRQHandler(void)
     if (status & EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG)   // check if receive flag is raised
     {
         data = MAP_UART_receiveData(EUSCI_A1_BASE);
-//
-//        if (currentState==1 && data=='!')
-//        {
-//            currentState = 2;
-//        }
-//        else if (currentState==1)
-//        {
-//            currentState = 1;
-//        }
-//        if (currentState==2 && data=='A')
-//        {
-//            currentState = 3;
-//        }
-//        else if (currentState==2)
-//        {
-//            currentState = 1;
-//        }
-//        if (currentState==3)
+
+        if (currentState==1)
+        {
+            if (data==33)
+                currentState = 2;
+            else
+                currentState = 1;
+        }
+        else if (currentState==2)
+        {
+            if (data==65)
+                currentState = 3;
+            else
+                currentState = 1;
+        }
+        else if (currentState==3)
         {
             rxDataArray[index++] = data;
-            if (index==100)
+            if (index==12)
             {
                 index = 0;
-                x = (rxDataArray[2] << 24) + (rxDataArray[3] << 16) + (rxDataArray[4] << 8) + (rxDataArray[5] << 0);
-//                currentState = 1;
+
+//                test2 = (rxDataArray[4]) | (rxDataArray[3]<<8) | (rxDataArray[2]<<16) | (rxDataArray[1]<<24);
+//                xLower = (((int)rxDataArray[3])<<8);
+
+//                x = (int)rxDataArray[1] + (int)rxDataArray[2]*256 + rxDataArray[3]*65536 + rxDataArray[4]*16777216);
+
+                // PERFECTLY WORKING
+//                xLower = (((int)rxDataArray[4]) << 24)
+//                  | (((int)rxDataArray[3]) << 16)
+//                  | (((int)rxDataArray[2]) << 8)
+//                  | (((int)rxDataArray[1]) << 0);
+
+                xAcc.intForm = ((((int)rxDataArray[3]) << 24)
+                  | (((int)rxDataArray[2]) << 16)
+                  | (((int)rxDataArray[1]) << 8)
+                  | (((int)rxDataArray[0]) << 0));
+
+                x = xAcc.floatForm;
+
+                yAcc.intForm = ((((int)rxDataArray[7]) << 24)
+                  | (((int)rxDataArray[6]) << 16)
+                  | (((int)rxDataArray[5]) << 8)
+                  | (((int)rxDataArray[4]) << 0));
+
+                y = yAcc.floatForm;
+
+                zAcc.intForm = ((((int)rxDataArray[11]) << 24)
+                  | (((int)rxDataArray[10]) << 16)
+                  | (((int)rxDataArray[9]) << 8)
+                  | (((int)rxDataArray[8]) << 0));
+
+                z = zAcc.floatForm;
+
+//                x = (float)((((int)rxDataArray[3]) << 24)
+//                        | (((int)rxDataArray[2]) << 16)
+//                        | (((int)rxDataArray[1]) << 8)
+//                        | (((int)rxDataArray[0]) << 0));
+//
+//                y = (float)((((int)rxDataArray[7]) << 24)
+//                        | (((int)rxDataArray[6]) << 16)
+//                        | (((int)rxDataArray[5]) << 8)
+//                        | (((int)rxDataArray[4]) << 0));
+//
+//                z = (float)((((int)rxDataArray[11]) << 24)
+//                        | (((int)rxDataArray[10]) << 16)
+//                        | (((int)rxDataArray[9]) << 8)
+//                        | (((int)rxDataArray[8]) << 0));
+
+                if (y<-4)   // turn left
+                {
+                    MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
+                    MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P4, GPIO_PIN1);
+                }
+                else if (y>4)   // turn right
+                {
+                    MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN6);
+                    MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P4, GPIO_PIN1);
+                }
+                else if (z<-2) // turn on both motors in reverse
+                {
+                    MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
+                    MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P4, GPIO_PIN1);
+                }
+                else if (z>6)   // turn on both motors in forward
+                {
+                    MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN6);
+                    MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P4, GPIO_PIN1);
+                }
+                else
+                {
+                    MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
+                    MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P4, GPIO_PIN1);
+                }
+
+                currentState = 1;
             }
         }
 
