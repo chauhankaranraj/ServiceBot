@@ -14,6 +14,9 @@
 #include <ti/devices/msp432p4xx/inc/msp.h>
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 
+#define PIXY_MODE 1
+#define MANUAL_MODE 2
+
 #define LEFT_MOTOR_PORT GPIO_PORT_P4
 #define LEFT_MOTOR_PIN GPIO_PIN1
 #define RIGHT_MOTOR_PORT GPIO_PORT_P1
@@ -44,6 +47,8 @@
 
 #define INITIAL_HALF_PERIOD 2500
 
+volatile uint8_t mode = 0;
+
 volatile uint8_t currentState = INIT_STATE;
 
 volatile uint8_t data;
@@ -57,8 +62,8 @@ volatile uint16_t yCenter;
 volatile uint16_t width;
 volatile uint16_t height;
 volatile int16_t angle;
-
-/* received object format
+/*
+   received object format
     0, 1     y              sync: 0xaa55=normal object, 0xaa56=color code object
     2, 3     y              checksum (sum of all 16-bit words 2-6, that is, bytes 4-13)
     4, 5     y              signature number
@@ -67,6 +72,20 @@ volatile int16_t angle;
     10, 11   y              width of object     // 1-320
     12, 13   y              height of object    // 1-200
  */
+
+volatile float x = 0, y = 0, z = 0;
+/*
+   X -- 4 3 2 1
+   Y -- 8 7 6 5
+   Z -- 12 11 10 9
+*/
+
+typedef union {
+  int intForm;
+  float floatForm;
+} acc;
+
+volatile acc xAcc, yAcc, zAcc;
 
 
 /********************************************************************
@@ -258,6 +277,97 @@ void EUSCIA1_IRQHandler(void)
     }
 }
 
+// ISR for UART receive
+void EUSCIA2_IRQHandler(void)
+{
+    // interrupt status
+    uint_fast8_t status = MAP_UART_getEnabledInterruptStatus(EUSCI_A2_BASE);
+
+    if (status & EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG)   // check if receive flag is raised
+    {
+        data = MAP_UART_receiveData(EUSCI_A2_BASE);
+
+        if (currentState==1)
+        {
+            if (data==33)
+                currentState = 2;
+            else
+                currentState = 1;
+        }
+        else if (currentState==2)
+        {
+            if (data==65)
+                currentState = 3;
+            else
+                currentState = 1;
+        }
+        else if (currentState==3)
+        {
+            rxDataArray[index++] = data;
+            if (index==12)
+            {
+                index = 0;
+
+                xAcc.intForm = ((((int)rxDataArray[3]) << 24)
+                  | (((int)rxDataArray[2]) << 16)
+                  | (((int)rxDataArray[1]) << 8)
+                  | (((int)rxDataArray[0]) << 0));
+
+                x = xAcc.floatForm;
+
+                yAcc.intForm = ((((int)rxDataArray[7]) << 24)
+                  | (((int)rxDataArray[6]) << 16)
+                  | (((int)rxDataArray[5]) << 8)
+                  | (((int)rxDataArray[4]) << 0));
+
+                y = yAcc.floatForm;
+
+                zAcc.intForm = ((((int)rxDataArray[11]) << 24)
+                  | (((int)rxDataArray[10]) << 16)
+                  | (((int)rxDataArray[9]) << 8)
+                  | (((int)rxDataArray[8]) << 0));
+
+                z = zAcc.floatForm;
+
+                // check if it is ok to move forward. If not, move backward
+                if (!MAP_GPIO_getInputPinValue(US_ECHO_PORT, US_ECHO_PIN))
+                {
+                    MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+                    MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+                    return;
+                }
+
+                if (y<-4)   // turn left
+                {
+                    MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+                    MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+                }
+                else if (y>4)   // turn right
+                {
+                    MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+                    MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+                }
+                else if (z<-2) // turn on both motors in reverse
+                {
+                    MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+                    MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+                }
+                else if (z>6)   // turn on both motors in forward
+                {
+                    MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+                    MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+                }
+                else
+                {
+                    MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+                    MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+                }
+
+                currentState = 1;
+            }
+        }
+    }
+}
 
 /********************************************************************
  *  MAIN
@@ -287,22 +397,27 @@ void main(void)
     // ultrasonic sensor echo pin 5.1
     MAP_GPIO_setAsInputPin(US_ECHO_PORT, US_ECHO_PIN);
 
-    // Selecting P2.2 (UCA1RXD) and P2.3 (UCA1TXD) in UART mode
+    // Selecting P2.2 (UCA1RXD) and P2.3 (UCA1TXD) for Pixy and P3.2 (UCA2RXD) and P3.3 (UCA2TXD)  for BLE module UART modeUART mode
     MAP_GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P2, GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
+    MAP_GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P3, GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
 
     // map ports
     MAP_PMAP_configurePorts(portMapping, PMAP_P2MAP, 1, PMAP_DISABLE_RECONFIGURATION);
     initTimer();
 
     // Configuring UART Module
-    MAP_UART_initModule(EUSCI_A1_BASE, &uartConfig);
+    MAP_UART_initModule(EUSCI_A1_BASE, &uartConfig);    // for pixy
+    MAP_UART_initModule(EUSCI_A2_BASE, &uartConfig);    // for ble module
 
     // Enable UART module
     MAP_UART_enableModule(EUSCI_A1_BASE);
+    MAP_UART_enableModule(EUSCI_A2_BASE);
 
     // Enabling interrupts
     MAP_UART_enableInterrupt(EUSCI_A1_BASE, EUSCI_A_UART_RECEIVE_INTERRUPT);
+    MAP_UART_enableInterrupt(EUSCI_A2_BASE, EUSCI_A_UART_RECEIVE_INTERRUPT);
     MAP_Interrupt_enableInterrupt(INT_EUSCIA1);
+    MAP_Interrupt_enableInterrupt(INT_EUSCIA2);
     MAP_Interrupt_disableSleepOnIsrExit();
     MAP_Interrupt_enableMaster();
 
