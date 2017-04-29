@@ -26,19 +26,19 @@
 #define FALL_SIGNAL_PORT GPIO_PORT_P4
 #define FALL_SIGNAL_PIN GPIO_PIN6
 
-#define US_TRIGGER_PORT GPIO_PORT_P2
-#define US_TRIGGER_PIN GPIO_PIN7
+#define US_TRIGGER_PORT GPIO_PORT_P7
+#define US_TRIGGER_PIN GPIO_PIN3
 #define US_ECHO_PORT GPIO_PORT_P5
 #define US_ECHO_PIN GPIO_PIN1
 
 #define RIGHT_THRESHOLD 200
 #define LEFT_THRESHOLD 100
-#define WIDTH_THRESHOLD 170
-#define HEIGHT_THRESHOLD 70
+#define WIDTH_THRESHOLD 56
+#define HEIGHT_THRESHOLD 27
 #define ANGLE_HIGH_THRESHOLD 110
 #define ANGLE_LOW_THRESHOLD 70
 
-#define SIGNATURE_123 5201
+#define SIGNATURE_123 10
 
 #define INIT_STATE 1
 #define STATE_55_RECEIVED 2
@@ -55,6 +55,8 @@ volatile uint8_t currentState = INIT_STATE;
 volatile uint8_t data;
 volatile uint8_t rxDataArray[14];
 volatile uint8_t index = 0;
+volatile uint8_t bleRxDataArray[12];
+volatile uint8_t bleIndex = 0;
 
 volatile uint16_t checksum;
 volatile uint16_t signatureNumber;
@@ -95,9 +97,9 @@ volatile acc xAcc, yAcc, zAcc;
 // Port mapping configuration register
 const uint8_t portMapping[] =
 {
-    //Port P2:
-    PM_NONE, PM_NONE, PM_NONE, PM_NONE, PM_NONE, PM_NONE, PM_NONE,
-    PM_TA0CCR0A
+    //Port P7:
+    PM_NONE, PM_NONE, PM_NONE, PM_TA0CCR0A, PM_NONE, PM_NONE, PM_NONE,
+    PM_NONE
 };
 
 // Timer_A UpMode Configuration Parameter
@@ -209,18 +211,18 @@ void moveCar(void)
     // right left
     if (xCenter > RIGHT_THRESHOLD)
     {
-        MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
-        MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
-    }
-    else if (xCenter < LEFT_THRESHOLD)
-    {
         MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
         MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
     }
+    else if (xCenter < LEFT_THRESHOLD)
+    {
+        MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+        MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+    }
     else
     {
-        MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
-        MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+//        MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+//        MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
     }
 }
 
@@ -279,96 +281,96 @@ void EUSCIA1_IRQHandler(void)
 }
 
 // ISR for UART receive
-//void EUSCIA2_IRQHandler(void)
-//{
-//    // interrupt status
-//    uint_fast8_t status = MAP_UART_getEnabledInterruptStatus(EUSCI_A2_BASE);
-//
-//    if (status & EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG)   // check if receive flag is raised
-//    {
-//        data = MAP_UART_receiveData(EUSCI_A2_BASE);
-//
-//        if (currentState==1)
-//        {
-//            if (data==33)
-//                currentState = 2;
-//            else
-//                currentState = 1;
-//        }
-//        else if (currentState==2)
-//        {
-//            if (data==65)
-//                currentState = 3;
-//            else
-//                currentState = 1;
-//        }
-//        else if (currentState==3)
-//        {
-//            rxDataArray[index++] = data;
-//            if (index==12)
-//            {
-//                index = 0;
-//
-//                xAcc.intForm = ((((int)rxDataArray[3]) << 24)
-//                  | (((int)rxDataArray[2]) << 16)
-//                  | (((int)rxDataArray[1]) << 8)
-//                  | (((int)rxDataArray[0]) << 0));
-//
-//                x = xAcc.floatForm;
-//
-//                yAcc.intForm = ((((int)rxDataArray[7]) << 24)
-//                  | (((int)rxDataArray[6]) << 16)
-//                  | (((int)rxDataArray[5]) << 8)
-//                  | (((int)rxDataArray[4]) << 0));
-//
-//                y = yAcc.floatForm;
-//
-//                zAcc.intForm = ((((int)rxDataArray[11]) << 24)
-//                  | (((int)rxDataArray[10]) << 16)
-//                  | (((int)rxDataArray[9]) << 8)
-//                  | (((int)rxDataArray[8]) << 0));
-//
-//                z = zAcc.floatForm;
-//
-////                // check if it is ok to move forward. If not, move backward
-////                if (!MAP_GPIO_getInputPinValue(US_ECHO_PORT, US_ECHO_PIN))
-////                {
-////                    MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
-////                    MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
-////                    return;
-////                }
-//
-//                if (y<-4)   // turn left
-//                {
-//                    MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
-//                    MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
-//                }
-//                else if (y>4)   // turn right
-//                {
-//                    MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
-//                    MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
-//                }
-//                else if (z<-2 && MAP_GPIO_getInputPinValue(US_ECHO_PORT, US_ECHO_PIN)) // turn on both motors in reverse
+void EUSCIA2_IRQHandler(void)
+{
+    // interrupt status
+    uint_fast8_t status = MAP_UART_getEnabledInterruptStatus(EUSCI_A2_BASE);
+
+    if (status & EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG)   // check if receive flag is raised
+    {
+        data = MAP_UART_receiveData(EUSCI_A2_BASE);
+
+        if (currentState==1)
+        {
+            if (data==33)
+                currentState = 2;
+            else
+                currentState = 1;
+        }
+        else if (currentState==2)
+        {
+            if (data==65)
+                currentState = 3;
+            else
+                currentState = 1;
+        }
+        else if (currentState==3)
+        {
+            bleRxDataArray[bleIndex++] = data;
+            if (bleIndex==12)
+            {
+                bleIndex = 0;
+
+                xAcc.intForm = ((((int)bleRxDataArray[3]) << 24)
+                  | (((int)bleRxDataArray[2]) << 16)
+                  | (((int)bleRxDataArray[1]) << 8)
+                  | (((int)bleRxDataArray[0]) << 0));
+
+                x = xAcc.floatForm;
+
+                yAcc.intForm = ((((int)bleRxDataArray[7]) << 24)
+                  | (((int)bleRxDataArray[6]) << 16)
+                  | (((int)bleRxDataArray[5]) << 8)
+                  | (((int)bleRxDataArray[4]) << 0));
+
+                y = yAcc.floatForm;
+
+                zAcc.intForm = ((((int)bleRxDataArray[11]) << 24)
+                  | (((int)bleRxDataArray[10]) << 16)
+                  | (((int)bleRxDataArray[9]) << 8)
+                  | (((int)bleRxDataArray[8]) << 0));
+
+                z = zAcc.floatForm;
+
+//                // check if it is ok to move forward. If not, move backward
+//                if (!MAP_GPIO_getInputPinValue(US_ECHO_PORT, US_ECHO_PIN))
 //                {
 //                    MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
 //                    MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+//                    return;
 //                }
-//                else if (z>6 && MAP_GPIO_getInputPinValue(US_ECHO_PORT, US_ECHO_PIN))   // turn on both motors in forward
-//                {
-//                    MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
-//                    MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
-//                }
-//                else
-//                {
-//                    MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
-//                    MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
-//                }
-//
-//                currentState = 1;
-//            }
-//        }
-//    }
-//}
+
+                if (y<-4)   // turn left
+                {
+                    MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+                    MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+                }
+                else if (y>4)   // turn right
+                {
+                    MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+                    MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+                }
+                else if (z<-2) // turn on both motors in reverse
+                {
+                    MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+                    MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+                }
+                else if (z>6)   // turn on both motors in forward
+                {
+                    MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+                    MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+                }
+                else
+                {
+                    MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
+                    MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
+                }
+
+                currentState = 1;
+            }
+        }
+    }
+}
 
 /********************************************************************
  *  MAIN
@@ -385,6 +387,10 @@ void main(void)
     MAP_CS_initClockSignal(CS_MCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
     MAP_CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
 
+    //  map ports
+    MAP_PMAP_configurePorts(portMapping, PMAP_P7MAP, 1, PMAP_DISABLE_RECONFIGURATION);
+    initTimer();
+
     // motor pins 4.1 (LEFT), 1.6 (RIGHT)
     MAP_GPIO_setAsOutputPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
     MAP_GPIO_setAsOutputPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
@@ -400,33 +406,31 @@ void main(void)
 
     // Selecting P2.2 (UCA1RXD) and P2.3 (UCA1TXD) for Pixy and P3.2 (UCA2RXD) and P3.3 (UCA2TXD)  for BLE module UART modeUART mode
     MAP_GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P2, GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
-//    MAP_GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P3, GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
+    MAP_GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P3, GPIO_PIN2 | GPIO_PIN3, GPIO_PRIMARY_MODULE_FUNCTION);
 
-    // map ports
-    MAP_PMAP_configurePorts(portMapping, PMAP_P2MAP, 1, PMAP_DISABLE_RECONFIGURATION);
-    initTimer();
 
     // Configuring UART Module
     MAP_UART_initModule(EUSCI_A1_BASE, &uartConfig);    // for pixy
-//    MAP_UART_initModule(EUSCI_A2_BASE, &uartConfig);    // for ble module
+    MAP_UART_initModule(EUSCI_A2_BASE, &uartConfig);    // for ble module
 
     // Enable UART module
     MAP_UART_enableModule(EUSCI_A1_BASE);
-//    MAP_UART_enableModule(EUSCI_A2_BASE);
+    MAP_UART_enableModule(EUSCI_A2_BASE);
 
     // Enabling interrupts
     MAP_UART_enableInterrupt(EUSCI_A1_BASE, EUSCI_A_UART_RECEIVE_INTERRUPT);
-//    MAP_UART_enableInterrupt(EUSCI_A2_BASE, EUSCI_A_UART_RECEIVE_INTERRUPT);
+    MAP_UART_enableInterrupt(EUSCI_A2_BASE, EUSCI_A_UART_RECEIVE_INTERRUPT);
     MAP_Interrupt_enableInterrupt(INT_EUSCIA1);
-//    MAP_Interrupt_enableInterrupt(INT_EUSCIA2);
+    MAP_Interrupt_enableInterrupt(INT_EUSCIA2);
     MAP_Interrupt_disableSleepOnIsrExit();
     MAP_Interrupt_enableMaster();
 
     while(1)
     {
         // go to sleep
-        MAP_PCM_gotoLPM0();
-        __no_operation();
+//        MAP_PCM_gotoLPM0();
+//        __no_operation();
+        MAP_set
     }
 
 }
