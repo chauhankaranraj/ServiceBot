@@ -28,8 +28,8 @@
 
 #define US_TRIGGER_PORT GPIO_PORT_P7
 #define US_TRIGGER_PIN GPIO_PIN3
-#define US_ECHO_PORT GPIO_PORT_P5
-#define US_ECHO_PIN GPIO_PIN1
+#define US_ECHO_PORT GPIO_PORT_P6
+#define US_ECHO_PIN GPIO_PIN3
 
 #define RIGHT_THRESHOLD 200
 #define LEFT_THRESHOLD 100
@@ -387,9 +387,9 @@ void main(void)
     MAP_CS_initClockSignal(CS_MCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
     MAP_CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
 
-    //  map ports
-    MAP_PMAP_configurePorts(portMapping, PMAP_P7MAP, 1, PMAP_DISABLE_RECONFIGURATION);
-    initTimer();
+//    //  map ports
+//    MAP_PMAP_configurePorts(portMapping, PMAP_P7MAP, 1, PMAP_DISABLE_RECONFIGURATION);
+//    initTimer();
 
     // motor pins 4.1 (LEFT), 1.6 (RIGHT)
     MAP_GPIO_setAsOutputPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
@@ -402,6 +402,7 @@ void main(void)
     MAP_GPIO_setOutputLowOnPin(FALL_SIGNAL_PORT, FALL_SIGNAL_PIN);
 
     // ultrasonic sensor echo pin 5.1
+    MAP_GPIO_setOutputLowOnPin(US_ECHO_PORT, US_ECHO_PIN);
     MAP_GPIO_setAsInputPin(US_ECHO_PORT, US_ECHO_PIN);
 
     // Selecting P2.2 (UCA1RXD) and P2.3 (UCA1TXD) for Pixy and P3.2 (UCA2RXD) and P3.3 (UCA2TXD)  for BLE module UART modeUART mode
@@ -425,12 +426,17 @@ void main(void)
     MAP_Interrupt_disableSleepOnIsrExit();
     MAP_Interrupt_enableMaster();
 
+    MAP_GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN5);
+
     while(1)
     {
         // go to sleep
-//        MAP_PCM_gotoLPM0();
-//        __no_operation();
-        MAP_set
+      //  MAP_PCM_gotoLPM0();
+        //__no_operation();
+        MAP_GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN5);
+        __delay_cycles(40000);
+        MAP_GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);
+       __delay_cycles(40000);
     }
 
 }
