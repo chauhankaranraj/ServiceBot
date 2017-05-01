@@ -76,7 +76,7 @@ volatile uint16_t angle;
 const uint8_t portMapping[] =
 {
     //Port P2:
-    PM_NONE, PM_NONE, PM_NONE, PM_NONE, PM_NONE, PM_NONE, PM_NONE,
+    PM_NONE, PM_NONE, PMAP_UCA1RXD, PMAP_UCA1TXD, PM_NONE, PM_NONE, PM_NONE,
     PM_TA0CCR0A
 };
 
