@@ -26,8 +26,8 @@
 #define FALL_SIGNAL_PORT GPIO_PORT_P4
 #define FALL_SIGNAL_PIN GPIO_PIN6
 
-#define US_TRIGGER_PORT GPIO_PORT_P7
-#define US_TRIGGER_PIN GPIO_PIN3
+#define US_TRIGGER_PORT GPIO_PORT_P2
+#define US_TRIGGER_PIN GPIO_PIN7
 #define US_ECHO_PORT GPIO_PORT_P6
 #define US_ECHO_PIN GPIO_PIN3
 
@@ -97,9 +97,9 @@ volatile acc xAcc, yAcc, zAcc;
 // Port mapping configuration register
 const uint8_t portMapping[] =
 {
-    //Port P7:
-    PM_NONE, PM_NONE, PM_NONE, PM_TA0CCR0A, PM_NONE, PM_NONE, PM_NONE,
-    PM_NONE
+    //Port P2:
+    PM_NONE, PM_NONE, PMAP_UCA1RXD, PMAP_UCA1TXD, PM_NONE, PM_NONE, PM_NONE,
+    PM_TA0CCR0A
 };
 
 // Timer_A UpMode Configuration Parameter
@@ -388,8 +388,8 @@ void main(void)
     MAP_CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
 
 //    //  map ports
-//    MAP_PMAP_configurePorts(portMapping, PMAP_P7MAP, 1, PMAP_DISABLE_RECONFIGURATION);
-//    initTimer();
+    MAP_PMAP_configurePorts(portMapping, PMAP_P2MAP, 1, PMAP_DISABLE_RECONFIGURATION);
+    initTimer();
 
     // motor pins 4.1 (LEFT), 1.6 (RIGHT)
     MAP_GPIO_setAsOutputPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
