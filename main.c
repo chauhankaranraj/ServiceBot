@@ -428,9 +428,8 @@ void main(void)
     while(1)
     {
         // go to sleep
-//        MAP_PCM_gotoLPM0();
-//        __no_operation();
-        MAP_set
+        MAP_PCM_gotoLPM0();
+        __no_operation();
     }
 
 }
