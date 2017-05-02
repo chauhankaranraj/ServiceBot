@@ -38,14 +38,14 @@
 #define US_ECHO_PORT GPIO_PORT_P6
 #define US_ECHO_PIN GPIO_PIN3
 
-#define RIGHT_THRESHOLD 200
-#define LEFT_THRESHOLD 100
-#define WIDTH_THRESHOLD 56
+#define RIGHT_THRESHOLD 250
+#define LEFT_THRESHOLD 70
+#define WIDTH_THRESHOLD 69
 #define HEIGHT_THRESHOLD 27
-#define ANGLE_HIGH_THRESHOLD 110
-#define ANGLE_LOW_THRESHOLD 70
+#define ANGLE_HIGH_THRESHOLD 130
+#define ANGLE_LOW_THRESHOLD 50
 
-#define SIGNATURE_123 10
+#define SIGNATURE_123 665
 
 #define INIT_STATE 1
 #define STATE_55_RECEIVED 2
@@ -185,15 +185,15 @@ uint8_t didReceiveSyncWords(void)
  ********************************************************************/
 void moveCar(void)
 {
-    // angle
-    if (angle>ANGLE_LOW_THRESHOLD && angle<ANGLE_HIGH_THRESHOLD)
-    {
-        MAP_GPIO_setOutputHighOnPin(FALL_SIGNAL_PORT, FALL_SIGNAL_PIN);
-    }
-    else
-    {
-        MAP_GPIO_setOutputLowOnPin(FALL_SIGNAL_PORT, FALL_SIGNAL_PIN);
-    }
+//    // angle
+//    if (angle>ANGLE_LOW_THRESHOLD && angle<ANGLE_HIGH_THRESHOLD)
+//    {
+//        MAP_GPIO_setOutputHighOnPin(FALL_SIGNAL_PORT, FALL_SIGNAL_PIN);
+//    }
+//    else
+//    {
+//        MAP_GPIO_setOutputLowOnPin(FALL_SIGNAL_PORT, FALL_SIGNAL_PIN);
+//    }
 
 //    // check if it is ok to move forward. If not, move backward
 //    if (!MAP_GPIO_getInputPinValue(US_ECHO_PORT, US_ECHO_PIN))
@@ -220,27 +220,27 @@ void moveCar(void)
     }
 
     // right left
-    if (xCenter > RIGHT_THRESHOLD)  // turn right
+    if (xCenter > RIGHT_THRESHOLD)  // turn left
     {
         MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_FORWARD_PORT, LEFT_MOTOR_FORWARD_PIN);
         MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_BACKWARD_PORT, LEFT_MOTOR_BACKWARD_PIN);
-        MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_FORWARD_PORT, RIGHT_MOTOR_FORWARD_PIN);
+        MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_FORWARD_PORT, RIGHT_MOTOR_FORWARD_PIN);
         MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_BACKWARD_PORT, RIGHT_MOTOR_BACKWARD_PIN);
     }
-    else if (xCenter < LEFT_THRESHOLD)  // turn left
+    else if (xCenter < LEFT_THRESHOLD)  // turn right
     {
-        MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_FORWARD_PORT, LEFT_MOTOR_FORWARD_PIN);
+        MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_FORWARD_PORT, LEFT_MOTOR_FORWARD_PIN);
         MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_BACKWARD_PORT, LEFT_MOTOR_BACKWARD_PIN);
         MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_FORWARD_PORT, RIGHT_MOTOR_FORWARD_PIN);
         MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_BACKWARD_PORT, RIGHT_MOTOR_BACKWARD_PIN);
     }
-    else    // stay there
-    {
-        MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_FORWARD_PORT, LEFT_MOTOR_FORWARD_PIN);
-        MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_BACKWARD_PORT, LEFT_MOTOR_BACKWARD_PIN);
-        MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_FORWARD_PORT, RIGHT_MOTOR_FORWARD_PIN);
-        MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_BACKWARD_PORT, RIGHT_MOTOR_BACKWARD_PIN);
-    }
+//    else    // stay there
+//    {
+//        MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_FORWARD_PORT, LEFT_MOTOR_FORWARD_PIN);
+//        MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_BACKWARD_PORT, LEFT_MOTOR_BACKWARD_PIN);
+//        MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_FORWARD_PORT, RIGHT_MOTOR_FORWARD_PIN);
+//        MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_BACKWARD_PORT, RIGHT_MOTOR_BACKWARD_PIN);
+//    }
 }
 
 
