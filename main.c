@@ -350,15 +350,21 @@ void EUSCIA2_IRQHandler(void)
 
                 z = zAcc.floatForm;
 
-//                // check if it is ok to move forward. If not, move backward
-//                if (!MAP_GPIO_getInputPinValue(US_ECHO_PORT, US_ECHO_PIN))
-//                {
-//                    MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_PORT, RIGHT_MOTOR_PIN);
-//                    MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_PORT, LEFT_MOTOR_PIN);
-//                    return;
-//                }
-
-                if (y < -4.0)   // turn left
+                if (z < -2.0) // turn on both motors in reverse
+                {
+                    MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_FORWARD_PORT, LEFT_MOTOR_FORWARD_PIN);
+                    MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_BACKWARD_PORT, LEFT_MOTOR_BACKWARD_PIN);
+                    MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_FORWARD_PORT, RIGHT_MOTOR_FORWARD_PIN);
+                    MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_BACKWARD_PORT, RIGHT_MOTOR_BACKWARD_PIN);
+                }
+                else if (!MAP_GPIO_getInputPinValue(US_ECHO_PORT, US_ECHO_PIN))  // blocking ahead
+                {
+                    MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_FORWARD_PORT, LEFT_MOTOR_FORWARD_PIN);
+                    MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_BACKWARD_PORT, LEFT_MOTOR_BACKWARD_PIN);
+                    MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_FORWARD_PORT, RIGHT_MOTOR_FORWARD_PIN);
+                    MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_BACKWARD_PORT, RIGHT_MOTOR_BACKWARD_PIN);
+                }
+                else if (y < -4.0)   // turn left
                 {
                     MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_FORWARD_PORT, LEFT_MOTOR_FORWARD_PIN);
                     MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_BACKWARD_PORT, LEFT_MOTOR_BACKWARD_PIN);
