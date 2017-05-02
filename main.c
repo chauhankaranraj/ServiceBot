@@ -363,12 +363,12 @@ void EUSCIA2_IRQHandler(void)
                     MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_FORWARD_PORT, LEFT_MOTOR_FORWARD_PIN);
                     MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_BACKWARD_PORT, LEFT_MOTOR_BACKWARD_PIN);
                     MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_FORWARD_PORT, RIGHT_MOTOR_FORWARD_PIN);
-                    MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_BACKWARD_PORT, RIGHT_MOTOR_BACKWARD_PIN);
+                    MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_BACKWARD_PORT, RIGHT_MOTOR_BACKWARD_PIN);
                 }
                 else if (y > 4.0)   // turn right
                 {
                     MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_FORWARD_PORT, LEFT_MOTOR_FORWARD_PIN);
-                    MAP_GPIO_setOutputHighOnPin(LEFT_MOTOR_BACKWARD_PORT, LEFT_MOTOR_BACKWARD_PIN);
+                    MAP_GPIO_setOutputLowOnPin(LEFT_MOTOR_BACKWARD_PORT, LEFT_MOTOR_BACKWARD_PIN);
                     MAP_GPIO_setOutputHighOnPin(RIGHT_MOTOR_FORWARD_PORT, RIGHT_MOTOR_FORWARD_PIN);
                     MAP_GPIO_setOutputLowOnPin(RIGHT_MOTOR_BACKWARD_PORT, RIGHT_MOTOR_BACKWARD_PIN);
                 }
