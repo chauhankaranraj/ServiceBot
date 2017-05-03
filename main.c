@@ -15,8 +15,11 @@
 #include <ti/devices/msp432p4xx/inc/msp.h>
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 
-#define PIXY_MODE 1
-#define MANUAL_MODE 2
+//#define PIXY 0
+//#define MANUAL 1
+
+#define BUTTON_PORT GPIO_PORT_P3
+#define BUTTON_PIN GPIO_PIN5
 
 #define LEFT_MOTOR_FORWARD_PORT GPIO_PORT_P4
 #define LEFT_MOTOR_FORWARD_PIN GPIO_PIN5
@@ -38,8 +41,8 @@
 #define US_ECHO_PORT GPIO_PORT_P6
 #define US_ECHO_PIN GPIO_PIN3
 
-#define RIGHT_THRESHOLD 200
-#define LEFT_THRESHOLD 100
+#define RIGHT_THRESHOLD 250
+#define LEFT_THRESHOLD 70
 #define WIDTH_THRESHOLD 15
 #define HEIGHT_THRESHOLD 27
 #define ANGLE_HIGH_THRESHOLD 130
@@ -55,7 +58,9 @@
 
 #define INITIAL_HALF_PERIOD 2500
 
-volatile uint8_t mode = 0;
+//volatile unsigned int state = PIXY;
+
+//volatile uint8_t mode = 0;
 
 volatile uint8_t currentState = INIT_STATE;
 
@@ -266,6 +271,8 @@ const eUSCI_UART_Config uartConfig =
 // ISR for UART receive
 void EUSCIA1_IRQHandler(void)
 {
+    if (MAP_GPIO_getInputPinValue(BUTTON_PORT, BUTTON_PIN)) return; // if high then manual mode
+
     // interrupt status
     uint_fast8_t status = MAP_UART_getEnabledInterruptStatus(EUSCI_A1_BASE);
 
@@ -301,6 +308,8 @@ void EUSCIA1_IRQHandler(void)
 // ISR for UART receive
 void EUSCIA2_IRQHandler(void)
 {
+    if (!MAP_GPIO_getInputPinValue(BUTTON_PORT, BUTTON_PIN)) return;    // if low then pixy mode
+
     // interrupt status
     uint_fast8_t status = MAP_UART_getEnabledInterruptStatus(EUSCI_A2_BASE);
 
@@ -406,6 +415,7 @@ void EUSCIA2_IRQHandler(void)
     }
 }
 
+
 /********************************************************************
  *  MAIN
  ********************************************************************/
@@ -424,6 +434,10 @@ void main(void)
     //  map ports
     MAP_PMAP_configurePorts(portMapping, PMAP_P2MAP, 1, PMAP_DISABLE_RECONFIGURATION);
     initTimer();
+
+    // manual mode/pixy mode pin
+    MAP_GPIO_setOutputLowOnPin(BUTTON_PORT, BUTTON_PIN);
+    MAP_GPIO_setAsInputPin(BUTTON_PORT, BUTTON_PIN);
 
     // set up motor pins
     MAP_GPIO_setAsOutputPin(LEFT_MOTOR_FORWARD_PORT, LEFT_MOTOR_FORWARD_PIN);
